@@ -1,0 +1,4 @@
+venv/
+.venv/
+docker/datasets
+*/__pycache__/

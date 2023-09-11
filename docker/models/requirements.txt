@@ -1,0 +1,6 @@
+fuzzywuzzy
+pandas
+numpy
+matplotlib
+scikit-learn
+requests
