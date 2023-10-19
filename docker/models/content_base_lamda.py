@@ -4,10 +4,11 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import linear_kernel
 from fuzzywuzzy import fuzz
 import requests
+import random
 
-path_data = "https://github.com/MatheusNakai/Datasets/raw/main/"
-movies = pd.read_csv(path_data + 'Datasets/movies_cb.csv')
-movieDB = pd.read_csv(path_data + 'Datasets/movies_bin.csv')
+path_data = "datasets/"
+movies = pd.read_csv(path_data + 'movies_cb.csv')
+movieDB = pd.read_csv(path_data + 'movies_bin.csv')
 
 tfidf_vector = TfidfVectorizer(stop_words='english') # create an object for TfidfVectorizer
 tfidf_matrix = tfidf_vector.fit_transform(movies['genres']) # apply the object to the genres column
@@ -84,11 +85,18 @@ def find_title_db(list_of_names):
   ret = []
   for movie in list_of_names:
     if ',' in movie:
-      movie = movie.split(',')
-      ret.append(movieDB.loc[movieDB['original_title'].str.contains(movie[0])])
+      try:
+        movie = movie.split(',')
+        aux = movieDB.loc[movieDB['original_title'].str.contains(movie[0])]
+        if len(aux) > 1:
+          ret.append(aux.iloc[0])
+        else:
+          ret.append(aux)
+      except Exception as err:
+        print(err)
     else:
       ret.append(movieDB.loc[movieDB['original_title'].str.contains(movie)])
-
+  
   list_of_row = [ele for ele in ret if len(ele['original_title']) != 0]
   return list_of_row
 
@@ -115,21 +123,32 @@ def get_movie_info(movieId):
 def format_json(list_of_movies):
   response = []
   for movie in list_of_movies:
-    id = int(movie['id'].values[0])
-    info = get_movie_info(id)
-    if info !='movie not found':
-      dic = {'id': id,
-              'original_title': movie['original_title'].values[0],
-              'overview':info['overview'],
-              'genres': movie['genres'].values[0],
-              'poster_path': info['poster_path']}
-      response.append(dic)
+    try:
+      id = int(movie['id'].values[0])
+      info = get_movie_info(id)
+      if info !='movie not found':
+        dic = {'id': id,
+                'original_title': movie['original_title'].values[0],
+                'overview':info['overview'],
+                'genres': movie['genres'].values[0],
+                'poster_path': info['poster_path'],
+                }
+        response.append(dic)
+    except Exception as err:
+      print(err)
   return response
   
 def lambda_handler(event, _):
     movies = event['body']
-    rec = multiple_movies_CB(movies)
-    titles = find_title_db(rec)
-    response = format_json(titles)
+    print(movies)
+    try:
+      rec = multiple_movies_CB(movies)
+      titles = find_title_db(rec)
+      response = format_json(titles)
+      random.shuffle(response)
 
-    return response
+    except Exception as e:
+      print(e)
+      raise e
+
+    return response[0:20] if len(response) > 20 else response

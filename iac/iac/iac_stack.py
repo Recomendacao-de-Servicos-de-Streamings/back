@@ -34,7 +34,8 @@ class IacStack(Stack):
             self,
             'myRole',
             assumed_by=iam.ServicePrincipal('lambda.amazonaws.com'),
-            managed_policies=[iam.ManagedPolicy.from_aws_managed_policy_name(managed_policy_name=('service-role/AWSLambdaBasicExecutionRole'))],
+            managed_policies=[iam.ManagedPolicy.from_aws_managed_policy_name(managed_policy_name=('service-role/AWSLambdaBasicExecutionRole')),
+                              iam.ManagedPolicy.from_aws_managed_policy_name(managed_policy_name=('AmazonEC2ContainerRegistryFullAccess'))],
         )
 
         func = _lambda.DockerImageFunction(
@@ -48,7 +49,12 @@ class IacStack(Stack):
             )
 
         func.add_function_url(
-            auth_type=_lambda.FunctionUrlAuthType.NONE
+            auth_type=_lambda.FunctionUrlAuthType.NONE,
+            cors=_lambda.FunctionUrlCorsOptions(
+        # Allow this to be called from websites on https://example.com.
+        # Can also be ['*'] to allow all domain.
+        allowed_origins=["*"]
+        )
         )
         
         # vpc = ec2.Vpc(self, "VPC-Fargate", max_azs=3)     # default is all AZs in region
